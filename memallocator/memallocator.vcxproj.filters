@@ -23,5 +23,8 @@
     <ClInclude Include="src\memmetadata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\allocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

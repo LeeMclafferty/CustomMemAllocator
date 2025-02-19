@@ -1,7 +1,8 @@
 #pragma once
 
-struct MemData{
-	MemData* previous;
-	MemData* next;
-	unsigned int size;
+struct MemBlock{
+	void* address;
+	MemBlock* previous;
+	MemBlock* next;
+	size_t size;
 };
