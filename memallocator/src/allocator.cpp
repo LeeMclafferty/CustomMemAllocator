@@ -26,9 +26,9 @@ public:
 
 int main() {
 
-	entity* e = request_mem<entity>();
+	entity* e = allocator::request_mem<entity>();
 	std::cout << "e address after request " << e << std::endl;
-	free_mem<entity>(e, true);
+	allocator::free_mem<entity>(e, true);
 	std::cout << "e address after free " << e << std::endl;
 
 	return 0;
