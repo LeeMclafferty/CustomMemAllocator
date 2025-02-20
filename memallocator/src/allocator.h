@@ -10,7 +10,7 @@
 // );
 
 // Reserved Memory - Memory that has been marked for future use but is not yet usable.
-// Committed Memory Memory that is actually usable by your program.
+// Committed Memory - Memory that is actually usable by your program.
 
 struct MemBlock {
 	MemBlock() {}
@@ -26,39 +26,51 @@ struct MemBlock {
 
 MemBlock* head = nullptr;
 
-void* request_mem(size_t size) {
+/*
+Parameters
+	args - object constructor arguments. 
+*/
+template <typename T, typename... Args>
+T* request_mem(Args&&... args) {
+
+	// Check for an already freed block before allocating more memory. 
 	MemBlock* buffer = head;
 	while (buffer) {
-		if (!buffer->free) {
-			continue;
+		if (buffer->free) {
+			if (buffer->size >= sizeof(T)) {
+				T* obj = new(buffer->address) T(std::forward<Args>(args)...);
+				buffer->free = false;
+				return obj;
+			}
 		}
 
-		if (buffer->size == size) {
-			return buffer->address;
-		}
+		buffer = buffer->next;
 	} 
 
-	void* address = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	MemBlock* block = new MemBlock(size, address, nullptr, head, false);
+	void* address = VirtualAlloc(nullptr, sizeof(T), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	T* obj = new(address) T(std::forward<Args>(args)...);
+	MemBlock* block = new MemBlock(sizeof(T), address, nullptr, head, false);
 	if (head) {
 		head->previous = block;
 	}
 	head = block;
 
-	return block->address;
+	return obj;
 }
 
 /*
- Parameter
-	ptr - memory address that you want to free
+ Parameters
+	ptr - reference to the pointer that will be freed. 
 	free_block - Default value is false, which will delete the block from memory.
 	if free_block is set to true, the block will remain in memory as a "free block" for 
 	reuse. 
 */
-void free_mem(void* ptr, bool free_block = false) {
+template<typename T>
+void free_mem(T*& ptr, bool free_block = false) {
 	MemBlock* buffer = head;
 	while (buffer) {
 		if (buffer->address == ptr) {
+			// Fix the linked list and delete the node
 			if (!free_block) {
 				if (buffer->previous) {
 					buffer->previous->next = buffer->next;
@@ -70,13 +82,18 @@ void free_mem(void* ptr, bool free_block = false) {
 				if (buffer == head) {
 					head = buffer->next;
 				}
-	
+
 				VirtualFree(ptr, 0, MEM_RELEASE);
+				ptr = nullptr;
+				
 				delete buffer;
 				break;
 			}
+			// Mark the block as free to reuse.
 			else
 			{
+				static_cast<T*>(buffer->address)->~T();
+				ptr = nullptr;
 				buffer->free = true;
 			}
 	
